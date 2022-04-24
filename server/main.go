@@ -1,10 +1,8 @@
 package main
 
 import (
-	"bytes"
 	"distributed-parallel-game-of-life/gol"
 	"encoding/binary"
-	"encoding/gob"
 	"fmt"
 	"net"
 	"os"
@@ -19,7 +17,7 @@ const (
 )
 
 var lock = sync.Mutex{}
-var connections = make([]net.Conn, 0, 10)
+var conns = make([]net.Conn, 0, 10)
 
 func main() {
 	portListener, err := net.Listen(protocol, host+":"+port)
@@ -32,28 +30,28 @@ func main() {
 
 	go listen(portListener)
 
+	waitGroup := sync.WaitGroup{}
+
 	for {
 		board := gol.RandomBoardPart(4, 4)
+		println()
 		board.Print()
-		b := bytes.Buffer{}
+		println()
 
-		encoder := gob.NewEncoder(&b)
-		err := encoder.Encode(board)
-		if err != nil {
-			println("Error encoding BoardPart object, err", err.Error())
-			return
-		}
-
-		for len(connections) == 0 {
+		for len(conns) == 0 {
 			time.Sleep(1 * time.Second)
 		}
-		bufferLen := make([]byte, 4)
-		binary.LittleEndian.PutUint32(bufferLen, uint32(b.Len()))
-		connections[0].Write(bufferLen)
-		connections[0].Write(b.Bytes())
 
+		connsLen := len(conns)
+		bParts := board.Split(uint32(connsLen))
+		for i := 0; i < connsLen; i++ {
+			go delegateBoardPart(conns[i], &bParts[i], &waitGroup)
+			waitGroup.Add(1)
+		}
+
+		waitGroup.Wait()
+		board = board.Merge(bParts)
 		time.Sleep(1 * time.Second)
-
 	}
 
 }
@@ -67,7 +65,25 @@ func listen(portListener net.Listener) {
 		}
 
 		lock.Lock()
-		connections = append(connections, conn)
+		conns = append(conns, conn)
 		lock.Unlock()
 	}
+}
+
+func delegateBoardPart(conn net.Conn, part *gol.BoardPart, gr *sync.WaitGroup) {
+	requestPayload := gol.SerializeBoardPart(*part)
+	payloadLen := make([]byte, 4)
+	binary.LittleEndian.PutUint32(payloadLen, uint32(len(requestPayload)))
+
+	conn.Write(payloadLen)
+	conn.Write(requestPayload)
+
+	conn.Read(payloadLen)
+	responsePayload := make([]byte, binary.LittleEndian.Uint32(payloadLen))
+	conn.Read(responsePayload)
+
+	b := gol.DeserializeBoardPart(responsePayload)
+	part = &b
+
+	gr.Done()
 }
