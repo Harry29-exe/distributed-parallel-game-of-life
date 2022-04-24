@@ -23,13 +23,13 @@ func registerAndListen() {
 	}
 
 	for {
-		bufferLen := make([]byte, 4)
-		_, err = conn.Read(bufferLen)
+		inputLenBytes := make([]byte, 4)
+		_, err = conn.Read(inputLenBytes)
 		if err != nil {
 			println("Error reading input inputLen, err:", err.Error())
 			return
 		}
-		inputLen := binary.LittleEndian.Uint32(bufferLen)
+		inputLen := binary.LittleEndian.Uint32(inputLenBytes)
 		println("Buffer len:", inputLen)
 
 		input := make([]byte, inputLen)
@@ -45,6 +45,10 @@ func registerAndListen() {
 
 		board := gol.DeserializeBoardPart(input)
 		board = board.CalcNext()
+		println()
+		board.Print()
+		println()
+
 		output := gol.SerializeBoardPart(board)
 		outputLen := make([]byte, 4)
 		binary.LittleEndian.PutUint32(outputLen, uint32(len(output)))
@@ -52,4 +56,5 @@ func registerAndListen() {
 		conn.Write(outputLen)
 		conn.Write(output)
 	}
+
 }

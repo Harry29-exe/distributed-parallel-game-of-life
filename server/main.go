@@ -31,13 +31,11 @@ func main() {
 	go listen(portListener)
 
 	waitGroup := sync.WaitGroup{}
+	board := gol.RandomBoardPart(4, 4)
+	println("Input")
+	board.Println()
 
 	for {
-		board := gol.RandomBoardPart(4, 4)
-		println()
-		board.Print()
-		println()
-
 		for len(conns) == 0 {
 			time.Sleep(1 * time.Second)
 		}
@@ -45,12 +43,18 @@ func main() {
 		connsLen := len(conns)
 		bParts := board.Split(uint32(connsLen))
 		for i := 0; i < connsLen; i++ {
-			go delegateBoardPart(conns[i], &bParts[i], &waitGroup)
 			waitGroup.Add(1)
+			go delegateBoardPart(bParts, i, &waitGroup)
 		}
 
 		waitGroup.Wait()
+		for _, part := range bParts {
+			part.Println()
+		}
+
 		board = board.Merge(bParts)
+		println("Result")
+
 		time.Sleep(1 * time.Second)
 	}
 
@@ -70,20 +74,21 @@ func listen(portListener net.Listener) {
 	}
 }
 
-func delegateBoardPart(conn net.Conn, part *gol.BoardPart, gr *sync.WaitGroup) {
-	requestPayload := gol.SerializeBoardPart(*part)
-	payloadLen := make([]byte, 4)
-	binary.LittleEndian.PutUint32(payloadLen, uint32(len(requestPayload)))
+func delegateBoardPart(parts []gol.BoardPart, i int, gr *sync.WaitGroup) {
+	output := gol.SerializeBoardPart(parts[i])
+	outputLenBuff := make([]byte, 4)
+	binary.LittleEndian.PutUint32(outputLenBuff, uint32(len(output)))
 
-	conn.Write(payloadLen)
-	conn.Write(requestPayload)
+	conn := conns[i]
+	conn.Write(outputLenBuff)
+	conn.Write(output)
 
-	conn.Read(payloadLen)
-	responsePayload := make([]byte, binary.LittleEndian.Uint32(payloadLen))
-	conn.Read(responsePayload)
+	inputLenBuff := make([]byte, 4)
+	conn.Read(inputLenBuff)
+	inputLen := binary.LittleEndian.Uint32(inputLenBuff)
+	input := make([]byte, inputLen)
+	conn.Read(input)
 
-	b := gol.DeserializeBoardPart(responsePayload)
-	part = &b
-
+	parts[i] = gol.DeserializeBoardPart(input)
 	gr.Done()
 }

@@ -59,6 +59,21 @@ func (b BoardPart) Print() {
 	}
 }
 
+func (b BoardPart) Println() {
+	println()
+	for y := uint32(1); y < b.Height+1; y++ {
+		for x := uint32(1); x < b.Width+1; x++ {
+			if b.Board[x][y] == 0 {
+				print("=")
+			} else {
+				print("#")
+			}
+		}
+		println()
+	}
+	println()
+}
+
 func (b BoardPart) PrintWithBorder() {
 	for y := uint32(0); y < b.Height+2; y++ {
 		for x := uint32(0); x < b.Width+2; x++ {
@@ -157,14 +172,12 @@ func (b BoardPart) Split(n uint32) []BoardPart {
 }
 
 func (b BoardPart) splitInto2() (BoardPart, BoardPart) {
-	width, height := b.Width/2, b.Height/2
-	b1Cols, b2Cols := make([][]int8, width), make([][]int8, width)
+	width, height := b.Width/2, b.Height
+	b1Cols, b2Cols := make([][]int8, width+2), make([][]int8, width+2)
 
-	for y := uint32(0); y < height+2; y++ {
-		b1Cols[y] = b.Board[y]
-	}
-	for y := height; y < height+height+2; y++ {
-		b1Cols[y] = b.Board[y]
+	for x := uint32(0); x < width+2; x++ {
+		b1Cols[x] = b.Board[x]
+		b2Cols[x] = b.Board[x+width]
 	}
 
 	return BoardPart{
