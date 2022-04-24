@@ -19,6 +19,7 @@ func main() {
 	go startServer()
 
 	board := gol.BoardPart{}
+	fmt.Println(board)
 }
 
 func startServer() {
