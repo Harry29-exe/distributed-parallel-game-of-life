@@ -2,15 +2,18 @@ package main
 
 import (
 	"distributed-parallel-game-of-life/gol"
-	"encoding/binary"
 	"fmt"
 	"net"
+	"os"
+	"sync"
 )
 
 const (
 	host = "localhost"
 	port = "3333"
 )
+
+const threadCount = 4
 
 func main() {
 	registerAndListen()
@@ -23,38 +26,32 @@ func registerAndListen() {
 	}
 
 	for {
-		inputLenBytes := make([]byte, 4)
-		_, err = conn.Read(inputLenBytes)
+		// receive
+		board, err := gol.Remote.ReceiveBoard(conn)
 		if err != nil {
-			println("Error reading input inputLen, err:", err.Error())
-			return
-		}
-		inputLen := binary.LittleEndian.Uint32(inputLenBytes)
-		println("Buffer len:", inputLen)
-
-		input := make([]byte, inputLen)
-		l, err := conn.Read(input)
-		if err != nil {
-			println("Error reading input , err:", err.Error())
-			return
-		} else if uint32(l) != inputLen {
-			println("Payload has different inputLen that expected."+
-				"\nExpected:", inputLen, "Actual:", l)
-			return
+			println(err.Error())
+			os.Exit(1)
 		}
 
-		board := gol.DeserializeBoardPart(input)
-		board = board.CalcNext()
-		println()
-		board.Print()
-		println()
+		// calc
+		wait := sync.WaitGroup{}
+		wait.Add(threadCount)
+		parts := board.Split(threadCount)
+		for i := 0; i < threadCount; i++ {
+			partNo := i
+			go func() {
+				parts[partNo] = parts[partNo].CalcNext()
+				wait.Done()
+			}()
+		}
+		wait.Wait()
+		outputBoard := board.Merge(parts)
 
-		output := gol.SerializeBoardPart(board)
-		outputLen := make([]byte, 4)
-		binary.LittleEndian.PutUint32(outputLen, uint32(len(output)))
-
-		conn.Write(outputLen)
-		conn.Write(output)
+		err = gol.Remote.SendBoard(conn, outputBoard)
+		if err != nil {
+			println(err.Error())
+			os.Exit(1)
+		}
 	}
 
 }

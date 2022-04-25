@@ -2,7 +2,6 @@ package main
 
 import (
 	"distributed-parallel-game-of-life/gol"
-	"encoding/binary"
 	"fmt"
 	"net"
 	"os"
@@ -31,7 +30,7 @@ func main() {
 	go listen(portListener)
 
 	waitGroup := sync.WaitGroup{}
-	board := gol.RandomBoardPart(4, 4)
+	board := gol.RandomBoardPart(8, 8)
 	println("Input")
 	board.Println()
 
@@ -75,20 +74,18 @@ func listen(portListener net.Listener) {
 }
 
 func delegateBoardPart(parts []gol.BoardPart, i int, gr *sync.WaitGroup) {
-	output := gol.SerializeBoardPart(parts[i])
-	outputLenBuff := make([]byte, 4)
-	binary.LittleEndian.PutUint32(outputLenBuff, uint32(len(output)))
+	err := gol.Remote.SendBoard(conns[i], parts[i])
+	if err != nil {
+		println(err.Error())
+		os.Exit(1)
+	}
 
-	conn := conns[i]
-	conn.Write(outputLenBuff)
-	conn.Write(output)
+	board, err := gol.Remote.ReceiveBoard(conns[i])
+	if err != nil {
+		println(err.Error())
+		os.Exit(1)
+	}
 
-	inputLenBuff := make([]byte, 4)
-	conn.Read(inputLenBuff)
-	inputLen := binary.LittleEndian.Uint32(inputLenBuff)
-	input := make([]byte, inputLen)
-	conn.Read(input)
-
-	parts[i] = gol.DeserializeBoardPart(input)
+	parts[i] = *board
 	gr.Done()
 }

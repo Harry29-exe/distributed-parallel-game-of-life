@@ -3,33 +3,30 @@ package gol
 import (
 	"bytes"
 	"encoding/gob"
-	"os"
 )
 
-func SerializeBoardPart(part BoardPart) []byte {
+func SerializeBoardPart(part BoardPart) ([]byte, error) {
 	payloadBuff := bytes.Buffer{}
 
 	encoder := gob.NewEncoder(&payloadBuff)
 	err := encoder.Encode(part)
 	if err != nil {
-		println("Error encoding BoardPart object, err", err.Error())
-		os.Exit(1)
+		return nil, err
 	}
 
-	return payloadBuff.Bytes()
+	return payloadBuff.Bytes(), nil
 }
 
-func DeserializeBoardPart(data []byte) BoardPart {
+func DeserializeBoardPart(data []byte) (*BoardPart, error) {
 	buffer := bytes.Buffer{}
 	buffer.Write(data)
 	decoder := gob.NewDecoder(&buffer)
 
-	board := BoardPart{}
+	board := &BoardPart{}
 	err := decoder.Decode(&board)
 	if err != nil {
-		println("Could not decode board payload, err", err.Error())
-		os.Exit(1)
+		return nil, err
 	}
 
-	return board
+	return board, nil
 }
