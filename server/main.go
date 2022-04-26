@@ -9,6 +9,10 @@ import (
 	"time"
 )
 
+var outputFilePath = "/home/kamil/GolandProjects/distributed-parallel-game-of-life" +
+	"/gol.out"
+var iterationsToDo = 10
+
 const (
 	host     = "localhost"
 	port     = "3333"
@@ -17,8 +21,19 @@ const (
 
 var lock = sync.Mutex{}
 var conns = make([]net.Conn, 0, 10)
+var iteration = 0
+
+const (
+	boardW = 32
+	boardH = 32
+)
 
 func main() {
+	if len(os.Args) > 1 {
+		outputFilePath = os.Args[1]
+	}
+
+	//start server
 	portListener, err := net.Listen(protocol, host+":"+port)
 	if err != nil {
 		fmt.Println("Could not start listening on: "+
@@ -29,12 +44,30 @@ func main() {
 
 	go listen(portListener)
 
-	waitGroup := sync.WaitGroup{}
-	board := gol.RandomBoardPart(8, 8)
-	println("Input")
-	board.Println()
+	//create file
+	err = os.WriteFile(outputFilePath, make([]byte, 0), 0755)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err.Error())
+		os.Exit(1)
+	}
+	file, err := os.Create(outputFilePath)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
+	}
 
-	for {
+	board := gol.RandomBoardPart(boardW, boardH)
+	err = board.FPrint(iteration, file)
+
+	// infinite loop
+	waitGroup := sync.WaitGroup{}
+
+	if err != nil {
+		panic(err.Error())
+	}
+	iteration++
+
+	for iteration < iterationsToDo {
 		for len(conns) == 0 {
 			time.Sleep(1 * time.Second)
 		}
@@ -45,14 +78,16 @@ func main() {
 			waitGroup.Add(1)
 			go delegateBoardPart(bParts, i, &waitGroup)
 		}
-
 		waitGroup.Wait()
-		for _, part := range bParts {
-			part.Println()
-		}
 
 		board = board.Merge(bParts)
-		println("Result")
+		err := board.FPrint(iteration, file)
+		if err != nil {
+			println(err.Error())
+			os.Exit(1)
+		}
+
+		iteration++
 
 		time.Sleep(1 * time.Second)
 	}

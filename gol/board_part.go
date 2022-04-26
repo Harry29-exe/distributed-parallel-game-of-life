@@ -3,7 +3,10 @@ package gol
 import (
 	"math"
 	"math/rand"
+	"os"
 	"sort"
+	"strconv"
+	"strings"
 )
 
 func emptyBoardPart(width, height uint32) BoardPart {
@@ -44,6 +47,30 @@ type BoardPart struct {
 	// edges of map needed to calc next iteration
 	Board  [][]int8
 	PartNo uint32
+}
+
+func (b BoardPart) FPrint(iteration int, file *os.File) error {
+	strBuilder := strings.Builder{}
+	strBuilder.WriteString(strconv.Itoa(iteration))
+	strBuilder.WriteRune('\n')
+
+	for y := uint32(1); y < b.Height+1; y++ {
+		for x := uint32(1); x < b.Width+1; x++ {
+			if b.Board[x][y] == 0 {
+				strBuilder.WriteRune('=')
+			} else {
+				strBuilder.WriteRune('#')
+			}
+		}
+		strBuilder.WriteRune('\n')
+	}
+	str := strBuilder.String()
+	_, err := file.Write([]byte(str))
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (b BoardPart) Print() {
