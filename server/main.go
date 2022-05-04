@@ -11,7 +11,7 @@ import (
 
 var outputFilePath = "/home/kamil/GolandProjects/distributed-parallel-game-of-life" +
 	"/gol.out"
-var iterationsToDo = 10
+var iterationsToDo = 1_000_000
 
 const (
 	host     = "localhost"
@@ -89,7 +89,7 @@ func main() {
 
 		iteration++
 
-		time.Sleep(1 * time.Second)
+		time.Sleep(1 * time.Millisecond)
 	}
 
 }

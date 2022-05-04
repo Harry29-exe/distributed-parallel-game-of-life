@@ -32,6 +32,7 @@ func registerAndListen() {
 			println(err.Error())
 			os.Exit(1)
 		}
+		println(board.PartNo)
 
 		// calc
 		wait := sync.WaitGroup{}

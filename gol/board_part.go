@@ -33,12 +33,6 @@ func RandomBoardPart(width, height uint32) BoardPart {
 	return board
 }
 
-//type BoardPartEncoder struct{}
-//
-//func (e BoardPartEncoder) Serialize(part BoardPart) []byte {
-//
-//}
-
 type BoardPart struct {
 	Width  uint32
 	Height uint32
@@ -152,11 +146,11 @@ func (b BoardPart) getNeighbors(x, y uint32) int8 {
 // Split into sqrt(n)
 func (b BoardPart) Split(n uint32) []BoardPart {
 	nSqrt := uint32(math.Floor(math.Sqrt(float64(n)))) // split into grid nSqrt x nSqrt
-	extraSplits := n - nSqrt*nSqrt                     // how many times split part of grid into 2
+	splitRest := n - nSqrt*nSqrt                       // how many times split part of grid into 2
 
 	parts := make([]BoardPart, n)
 	partW, partH := b.Width/nSqrt, b.Height/nSqrt
-	extraSplitsCounter, partNo := extraSplits, uint32(0)
+	extraSplitsCounter, partNo := splitRest, uint32(0)
 
 	for yPart := uint32(0); yPart < nSqrt; yPart++ {
 		startY := partH * yPart
@@ -186,13 +180,14 @@ func (b BoardPart) Split(n uint32) []BoardPart {
 		}
 	}
 
-	for i := uint32(0); i < extraSplits; i += 2 {
-		part := parts[i]
+	for i := uint32(0); i < splitRest; i++ {
+		i2 := i * 2
+		part := parts[i2]
 		p1, p2 := part.splitInto2()
 		p1.PartNo = part.PartNo
 		p2.PartNo = part.PartNo + 1
-		parts[i] = p1
-		parts[i+1] = p2
+		parts[i2] = p1
+		parts[i2+1] = p2
 	}
 
 	return parts
