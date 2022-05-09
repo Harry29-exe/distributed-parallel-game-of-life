@@ -9,29 +9,12 @@ import (
 	"time"
 )
 
-var outputFilePath = "/home/kamil/GolandProjects/distributed-parallel-game-of-life" +
-	"/gol.out"
-var iterationsToDo = 10
-
-const (
-	host     = "localhost"
-	port     = "3333"
-	protocol = "tcp"
-)
-
 var lock = sync.Mutex{}
 var conns = make([]net.Conn, 0, 10)
 var iteration = 0
 
-const (
-	boardW = 32
-	boardH = 32
-)
-
 func main() {
-	if len(os.Args) > 1 {
-		outputFilePath = os.Args[1]
-	}
+	readInputArgs()
 
 	//start server
 	portListener, err := net.Listen(protocol, host+":"+port)
@@ -67,7 +50,7 @@ func main() {
 	}
 	iteration++
 
-	for iteration < iterationsToDo {
+	for iteration < programIterations {
 		for len(conns) == 0 {
 			time.Sleep(1 * time.Second)
 		}
