@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net"
 	"os"
+	"server/server"
 	"sync"
 	"time"
 )
@@ -15,6 +16,7 @@ var iteration = 0
 
 func main() {
 	readInputArgs()
+	s := server.server{}
 
 	//start server
 	portListener, err := net.Listen(protocol, host+":"+port)
