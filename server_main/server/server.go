@@ -22,7 +22,7 @@ func CreateServer(protocol, host, port string) DistributorServer {
 	return &distributorServer{
 		connections: map[uint64]ConnWrapper{},
 		connCount:   0,
-		connCounter: ConnCounter{},
+		connCounter: &ConnCounter{nextId: 0},
 		lock:        &sync.Mutex{},
 		stopChan:    make(chan bool),
 		isActive:    false,
@@ -35,7 +35,7 @@ func CreateServer(protocol, host, port string) DistributorServer {
 type distributorServer struct {
 	connections map[uint64]ConnWrapper
 	connCount   uint64
-	connCounter ConnCounter
+	connCounter *ConnCounter
 
 	lock                 sync.Locker
 	portListener         net.Listener
@@ -63,6 +63,8 @@ func (s *distributorServer) Start() error {
 	s.isActive = true
 	s.lock.Unlock()
 
+	fmt.Println("Server started")
+
 	return nil
 }
 
@@ -75,7 +77,9 @@ func (s *distributorServer) Distribute(tasks []Task) error {
 	if s.isActive == false {
 		return errors.New("server is not active")
 	} else if len(s.connections) == 0 {
+		s.lock.Unlock()
 		s.waitForConnection()
+		s.lock.Lock()
 	}
 
 	errChan := make(chan taskError)
@@ -146,13 +150,6 @@ func (s *distributorServer) IsActive() bool {
 }
 
 func (s distributorServer) listen(portListener net.Listener, stop chan bool) {
-	defer func(portListener net.Listener) {
-		err := portListener.Close()
-		if err != nil {
-			fmt.Printf("When closing server port error has occured: %s", err.Error())
-		}
-	}(portListener)
-
 	for {
 		select {
 		case <-stop:
@@ -167,6 +164,7 @@ func (s distributorServer) listen(portListener net.Listener, stop chan bool) {
 
 			s.lock.Lock()
 
+			fmt.Println("New connection")
 			connId := s.connCounter.GetAndIncrease()
 			s.connections[connId] = ConnWrapper{
 				Conn:   conn,
@@ -180,6 +178,7 @@ func (s distributorServer) listen(portListener net.Listener, stop chan bool) {
 }
 
 func (s *distributorServer) waitForConnection() {
+	fmt.Println("Waiting for connections...")
 	for {
 		s.lock.Lock()
 		if len(s.connections) > 0 {

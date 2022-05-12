@@ -6,19 +6,19 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"time"
 )
 
 var (
-	host                  = "localhost"
-	port                  = "3333"
-	protocol              = "tcp"
-	boardW         uint32 = 32
-	boardH         uint32 = 32
-	outputFilePath        = "/home/kamil/GolandProjects/distributed-parallel-game-of-life" +
-		"/gol.out"
-	programIterations = 10
-	delay             = false
-	delayTime         = 0 // delay in milliseconds between sending board parts
+	host                            = "localhost"
+	port                            = "3333"
+	protocol                        = "tcp"
+	boardW            uint32        = 32
+	boardH            uint32        = 32
+	outputFilePath                  = "/home/kamil/GolandProjects/distributed-parallel-game-of-life/gol.out"
+	programIterations               = 10
+	delay                           = false
+	delayTime         time.Duration = 0 // delay in milliseconds between sending board parts
 )
 
 func readInputArgs() {
@@ -94,6 +94,6 @@ func readInputArgs() {
 			os.Exit(1)
 		}
 
-		delayTime = delayTimeVal
+		delayTime = time.Duration(delayTimeVal) * time.Millisecond
 	}
 }

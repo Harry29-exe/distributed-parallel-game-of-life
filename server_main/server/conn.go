@@ -11,9 +11,9 @@ type ConnWrapper struct {
 }
 
 type ConnCounter struct {
-	nextId *uint64
+	nextId uint64
 }
 
-func (c ConnCounter) GetAndIncrease() uint64 {
-	return atomic.AddUint64(c.nextId, 1) - 1
+func (c *ConnCounter) GetAndIncrease() uint64 {
+	return atomic.AddUint64(&c.nextId, 1) - 1
 }

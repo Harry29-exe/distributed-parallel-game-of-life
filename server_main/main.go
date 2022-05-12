@@ -3,34 +3,18 @@ package main
 import (
 	"distributed-parallel-game-of-life/gol"
 	"fmt"
-	"net"
 	"os"
 	"server/server"
-	"sync"
 	"time"
 )
 
-var lock = sync.Mutex{}
-var conns = make([]net.Conn, 0, 10)
 var iteration = 0
 
 func main() {
 	readInputArgs()
-	s := server.server{}
-
-	//start server
-	portListener, err := net.Listen(protocol, host+":"+port)
-	if err != nil {
-		fmt.Println("Could not start listening on: "+
-			host+":"+port+
-			", because of error:", err)
-		os.Exit(1)
-	}
-
-	go listen(portListener)
 
 	//create file
-	err = os.WriteFile(outputFilePath, make([]byte, 0), 0755)
+	err := os.WriteFile(outputFilePath, make([]byte, 0), 0755)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err.Error())
 		os.Exit(1)
@@ -41,71 +25,67 @@ func main() {
 		os.Exit(1)
 	}
 
-	board := gol.RandomBoardPart(boardW, boardH)
-	err = board.FPrint(iteration, file)
-
-	// infinite loop
-	waitGroup := sync.WaitGroup{}
-
+	s := server.CreateServer(protocol, host, port)
+	err = s.Start()
 	if err != nil {
-		panic(err.Error())
+		fmt.Println("Could not start server because of following error: ", err.Error())
 	}
-	iteration++
 
-	for iteration < programIterations {
-		for len(conns) == 0 {
-			time.Sleep(1 * time.Second)
+	board := gol.RandomBoardPart(boardW, boardH)
+	for iteration = 1; iteration <= programIterations; iteration++ {
+		taskCount := max(s.ConnectionCount(), 1)
+		tasks := make([]server.Task, taskCount)
+
+		//todo add error handling when board can not be split to so many parts
+		boardParts := board.Split(uint32(taskCount))
+		for i := uint64(0); i < taskCount; i++ {
+			fmt.Printf("i = %d\n", i)
+			boardData, err := gol.SerializeBoardPart(boardParts[i])
+			if err != nil {
+				fmt.Println("could not serialize board, that is unexpected error please contact it teams")
+				os.Exit(1)
+			}
+
+			iCopy := i
+			tasks[i] = server.Task{
+				TaskData: boardData,
+				Receiver: func(data []byte, err error) error {
+					if err != nil {
+						return err
+					}
+					boardPart, err := gol.DeserializeBoardPart(data)
+					if err != nil {
+						return err
+					}
+					fmt.Printf("iCopy = %d\n", iCopy)
+					boardParts[iCopy] = *boardPart
+					return nil
+				},
+			}
 		}
 
-		connsLen := len(conns)
-		bParts := board.Split(uint32(connsLen))
-		for i := 0; i < connsLen; i++ {
-			waitGroup.Add(1)
-			go delegateBoardPart(bParts, i, &waitGroup)
+		err = s.Distribute(tasks)
+		if err != nil {
+			fmt.Println("Could not distribute tasks between clients because of following error: " + err.Error())
+			os.Exit(1)
 		}
-		waitGroup.Wait()
+		board = board.Merge(boardParts)
 
-		board = board.Merge(bParts)
-		err := board.FPrint(iteration, file)
+		err = board.FPrint(iteration, file)
 		if err != nil {
 			println(err.Error())
 			os.Exit(1)
 		}
 
-		iteration++
-
-		time.Sleep(1 * time.Second)
-	}
-
-}
-
-func listen(portListener net.Listener) {
-	defer portListener.Close()
-	for {
-		conn, err := portListener.Accept()
-		if err != nil {
-			fmt.Println("Could not accept connection because:", err)
+		if delay {
+			time.Sleep(delayTime)
 		}
-
-		lock.Lock()
-		conns = append(conns, conn)
-		lock.Unlock()
 	}
 }
 
-func delegateBoardPart(parts []gol.BoardPart, i int, gr *sync.WaitGroup) {
-	err := gol.Remote.SendBoard(conns[i], parts[i])
-	if err != nil {
-		println(err.Error())
-		os.Exit(1)
+func max(a, b uint64) uint64 {
+	if a > b {
+		return a
 	}
-
-	board, err := gol.Remote.ReceiveBoard(conns[i])
-	if err != nil {
-		println(err.Error())
-		os.Exit(1)
-	}
-
-	parts[i] = *board
-	gr.Done()
+	return b
 }

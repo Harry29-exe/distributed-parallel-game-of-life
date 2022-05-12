@@ -32,6 +32,7 @@ func registerAndListen() {
 			println(err.Error())
 			os.Exit(1)
 		}
+		fmt.Println("Received board")
 
 		// calc
 		wait := sync.WaitGroup{}
@@ -47,11 +48,14 @@ func registerAndListen() {
 		wait.Wait()
 		outputBoard := board.Merge(parts)
 
+		fmt.Println("Calculated next board")
+
 		err = gol.Remote.SendBoard(conn, outputBoard)
 		if err != nil {
 			println(err.Error())
 			os.Exit(1)
 		}
+		fmt.Println("Send board to server")
 	}
 
 }
