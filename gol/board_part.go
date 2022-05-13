@@ -1,6 +1,7 @@
 package gol
 
 import (
+	"errors"
 	"math"
 	"math/rand"
 	"os"
@@ -149,123 +150,133 @@ func (b BoardPart) getNeighbors(x, y uint32) int8 {
 	return sum
 }
 
+func (b BoardPart) Merge(parts []BoardPart) BoardPart {
+	data := make([][]int8, b.Width+2)
+	for i := 0; i < int(b.Width+2); i++ {
+		data[i] = make([]int8, b.Height+2)
+	}
+
+	for _, part := range parts {
+		partIterator := 1
+		partEnd := part.StartH + part.Height
+		for x := part.StartW; x < part.StartW+part.Width; x++ {
+			copy(data[x+1][part.StartH+1:partEnd+1], part.Board[partIterator][1:part.Height+1])
+			partIterator++
+		}
+	}
+
+	return BoardPart{
+		Width:  b.Width,
+		Height: b.Height,
+		Board:  data,
+		StartW: 0,
+		StartH: 0,
+	}
+}
+
 func (b BoardPart) Split(n uint32) ([]BoardPart, error) {
-	parts := make([]BoardPart, 1, n)
-	partsCounter := 1
+	parts := make([]BoardPart, n)
+	parts[0] = b
+	partsIteratorLen := 1
 	partsIterator := 0
 
-	for i := uint32(0); i < n; i++ {
+	for i := 1; i < int(n); i++ {
+		err := b.splitInto2(parts, partsIterator, i)
+		if err != nil {
+			return nil, err
+		}
 
+		partsIterator++
+		if partsIterator == partsIteratorLen {
+			partsIterator = 0
+			partsIteratorLen = i
+		}
 	}
+
+	return parts, nil
 }
 
-func (b BoardPart) splitInto2(parts []BoardPart, partIndex int) {
+func (b BoardPart) splitInto2(parts []BoardPart, partIndex, newPartIndex int) error {
 	board := parts[partIndex]
-	b1 := BoardPart{
-		Width:  uint32(math.Ceil(float64(board.Width) / 2)),
-		Height: uint32(math.Ceil(float64(board.Height) / 2)),
-		Board:  nil,
-		StartW: board.StartW,
-		StartH: board.StartH,
-	}
-	b1.Board = make([][]int8, b1.Height)
-	for y := uint32(0); y < b1.Height; y++ {
+	if board.Width > board.Height {
 
+		b1Width := uint32(math.Ceil(float64(board.Width) / 2))
+		parts[partIndex] = BoardPart{
+			Width:  b1Width,
+			Height: board.Height,
+			Board:  b.copyData(board.StartW, board.StartH, b1Width, board.Height),
+			StartW: board.StartW,
+			StartH: board.StartH,
+		}
+
+		b2Width := uint32(math.Floor(float64(board.Width) / 2))
+		if b2Width < 1 {
+			return errors.New("can not split board")
+		}
+		parts[newPartIndex] = BoardPart{
+			Width:  b2Width,
+			Height: board.Height,
+			Board:  b.copyData(board.StartW+b1Width, board.StartH, b2Width, board.Height),
+			StartW: board.StartW + b1Width,
+			StartH: board.StartH,
+		}
+
+	} else {
+		b1Height := uint32(math.Ceil(float64(board.Height) / 2))
+		parts[partIndex] = BoardPart{
+			Width:  board.Width,
+			Height: b1Height,
+			Board:  b.copyData(board.StartW, board.StartH, board.Width, b1Height),
+			StartW: board.StartW,
+			StartH: board.StartH,
+		}
+
+		b2Height := uint32(math.Floor(float64(board.Height) / 2))
+		if b2Height < 1 {
+			return errors.New("can not split board")
+		}
+		b2HeightStart := board.StartH + b1Height
+		parts[newPartIndex] = BoardPart{
+			Width:  board.Width,
+			Height: b2Height,
+			Board:  b.copyData(board.StartW, b2HeightStart, board.Width, b2Height),
+			StartW: board.StartW,
+			StartH: b2HeightStart,
+		}
 	}
 
+	return nil
 }
 
-//// Split into sqrt(n)
-//func (b BoardPart) Split(n uint32) []BoardPart {
-//	nSqrt := uint32(math.Floor(math.Sqrt(float64(n)))) // split into grid nSqrt x nSqrt
-//	extraSplits := n - nSqrt*nSqrt                     // how many times split part of grid into 2
-//
-//	parts := make([]BoardPart, n)
-//	partW, partH := b.Width/nSqrt, b.Height/nSqrt
-//	extraSplitsCounter, partNo := extraSplits, uint32(0)
-//
-//	for yPart := uint32(0); yPart < nSqrt; yPart++ {
-//		startY := partH * yPart
-//
-//		for xPart := uint32(0); xPart < nSqrt; xPart++ {
-//			startX := partW * xPart
-//
-//			columns := make([][]int8, partW+2)
-//
-//			for i := uint32(0); i < partW+2; i++ {
-//				columns[i] = b.Board[startX+i][startY : startY+partH+2]
-//			}
-//
-//			parts[partNo] = BoardPart{
-//				Width:  partW,
-//				Height: partH,
-//				Board:  columns,
-//				PartNo: partNo,
-//			}
-//
-//			if extraSplitsCounter > 0 {
-//				partNo += 2
-//				extraSplitsCounter--
-//			} else {
-//				partNo++
-//			}
-//		}
-//	}
-//
-//	for i := uint32(0); i < extraSplits; i += 2 {
-//		part := parts[i]
-//		p1, p2 := part.splitInto2()
-//		p1.PartNo = part.PartNo
-//		p2.PartNo = part.PartNo + 1
-//		parts[i] = p1
-//		parts[i+1] = p2
-//	}
-//
-//	return parts
-//}
-//
-//func (b BoardPart) splitInto2() (BoardPart, BoardPart) {
-//	width, height := b.Width/2, b.Height
-//	b1Cols, b2Cols := make([][]int8, width+2), make([][]int8, width+2)
-//
-//	for x := uint32(0); x < width+2; x++ {
-//		b1Cols[x] = b.Board[x]
-//		b2Cols[x] = b.Board[x+width]
-//	}
-//
-//	return BoardPart{
-//			Width:  width,
-//			Height: height,
-//			Board:  b1Cols,
-//			PartNo: 0,
-//		}, BoardPart{
-//			Width:  width,
-//			Height: height,
-//			Board:  b2Cols,
-//			PartNo: 1,
-//		}
-//}
-//
-//func (b BoardPart) Merge(parts []BoardPart) BoardPart {
-//	sort.Slice(parts, func(i, j int) bool {
-//		return parts[i].PartNo < parts[j].PartNo
-//	})
-//
-//	merged := emptyBoardPart(b.Width, b.Height)
-//	mergedX, mergedY := uint32(0), uint32(0)
-//
-//	for _, part := range parts {
-//		for x := uint32(1); x < part.Width+1; x++ {
-//			for y := uint32(1); y < part.Height+1; y++ {
-//				merged.Board[mergedX+x][mergedY+y] = part.Board[x][y]
-//			}
-//		}
-//		mergedX += part.Width
-//		if mergedX == b.Width {
-//			mergedX = 0
-//			mergedY += part.Height
-//		}
-//	}
-//
-//	return merged
-//}
+func (b BoardPart) copyData(startX, startY uint32, width, height uint32) [][]int8 {
+	data := make([][]int8, width+2)
+	for x := 0; x < int(width+2); x++ {
+		data[x] = make([]int8, height+2)
+	}
+
+	dataStartY := startY
+	dataEndY := startY + height + 2
+	dataIter := 0
+	for i := startX; i < startX+width+2; i++ {
+		copy(data[dataIter], b.Board[i][dataStartY:dataEndY])
+		dataIter++
+	}
+
+	return data
+}
+
+func (b BoardPart) Equal(b2 BoardPart) bool {
+	if b.Width != b2.Width || b.Height != b2.Height {
+		return false
+	}
+
+	for x := 1; x < int(b.Width+1); x++ {
+		for y := 1; y < int(b.Height+1); y++ {
+			if b.Board[x][y] != b2.Board[x][y] {
+				return false
+			}
+		}
+	}
+
+	return true
+}

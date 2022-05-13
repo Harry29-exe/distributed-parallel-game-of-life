@@ -1,28 +1,27 @@
 package gol
 
 import (
-	"sort"
 	"testing"
 )
 
 func TestBoardPart_Split(t *testing.T) {
-	board := RandomBoardPart(4, 4)
-	println("original")
-	board.PrintWithBorder()
-	boards := board.Split(2)
+	widths := []uint32{4, 15, 16, 25, 32}
+	heights := []uint32{4, 13, 16, 16, 13}
+	ns := []uint32{2, 4, 5, 4, 8}
 
-	sort.Slice(boards, func(i, j int) bool {
-		return boards[i].PartNo < boards[j].PartNo
-	})
+	for i := 0; i < len(widths); i++ {
+		board := RandomBoardPart(widths[i], heights[i])
+		boards, err := board.Split(ns[i])
+		if err != nil {
+			t.Error("board Split() returned following error: " + err.Error())
+		}
 
-	for i, bPart := range boards {
-		println(i)
-		bPart.PrintWithBorder()
+		merged := board.Merge(boards)
+
+		if !board.Equal(merged) {
+			t.Error("pre merge board is not equal to merged board")
+		}
 	}
-
-	println("Merged")
-	merged := board.Merge(boards)
-	merged.PrintWithBorder()
 
 }
 
@@ -37,8 +36,8 @@ func TestSerializeBoardPart(t *testing.T) {
 	board.Print()
 	println()
 
-	data := SerializeBoardPart(board)
-	newBoard := DeserializeBoardPart(data)
+	data, _ := SerializeBoardPart(board)
+	newBoard, _ := DeserializeBoardPart(data)
 	println()
 	newBoard.Print()
 	println()
