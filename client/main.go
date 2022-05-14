@@ -13,7 +13,7 @@ const (
 	port = "3333"
 )
 
-const threadCount = 2
+const threadCount = 4
 
 func main() {
 	registerAndListen()

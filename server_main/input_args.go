@@ -97,7 +97,7 @@ func readInputArgs() {
 		delayTime = time.Duration(delayTimeVal) * time.Millisecond
 	}
 
-	argValue, ok = args["boardH"]
+	argValue, ok = args["programIterations"]
 	if ok {
 		iterations, err := strconv.Atoi(argValue)
 		if err != nil || iterations < 1 || iterations > math.MaxUint32 {
@@ -107,4 +107,19 @@ func readInputArgs() {
 		programIterations = iterations
 	}
 
+}
+
+func printArgs() {
+	fmt.Println("Starting server with following arguments:")
+	fmt.Println("\thost=" + host)
+	fmt.Println("\tport=" + port)
+	fmt.Println("\tprotocol=" + protocol)
+	fmt.Println("\tboardW=" + strconv.Itoa(int(boardW)))
+	fmt.Println("\tboardH=" + strconv.Itoa(int(boardH)))
+	fmt.Println("\toutputFilePath=" + outputFilePath)
+	fmt.Println("\tprogramIterations=" + strconv.Itoa(programIterations))
+	fmt.Println("\tdelay=" + strconv.FormatBool(delay))
+	fmt.Println("\tdelayTime=" + strconv.Itoa(int(delayTime)))
+
+	fmt.Print("\n\n")
 }

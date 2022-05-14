@@ -12,6 +12,7 @@ var iteration = 0
 
 func main() {
 	readInputArgs()
+	printArgs()
 
 	//create file
 	err := os.WriteFile(outputFilePath, make([]byte, 0), 0755)
