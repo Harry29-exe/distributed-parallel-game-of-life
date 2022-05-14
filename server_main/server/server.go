@@ -89,7 +89,7 @@ func (s *distributorServer) Distribute(tasks []Task) error {
 	taskCounter := 0
 	for taskCounter < len(tasks) {
 		for _, connWrapper := range s.connections {
-			if taskCounter > len(tasks) {
+			if taskCounter >= len(tasks) {
 				break
 			}
 

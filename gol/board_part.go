@@ -162,7 +162,7 @@ func (b BoardPart) Merge(parts []BoardPart) BoardPart {
 		partIterator := 1
 		partEnd := part.StartH + part.Height
 		for x := part.StartW; x < part.StartW+part.Width; x++ {
-			copy(data[x+1][part.StartH+1:partEnd+1], part.Board[partIterator][1:part.Height+1])
+			copy(data[x+1-b.StartW][part.StartH+1-b.StartH:partEnd+1-b.StartH], part.Board[partIterator][1:part.Height+1])
 			partIterator++
 		}
 	}
@@ -260,7 +260,7 @@ func (b BoardPart) copyData(startX, startY uint32, width, height uint32) [][]int
 	dataEndY := startY + height + 2
 	dataIter := 0
 	for i := startX; i < startX+width+2; i++ {
-		copy(data[dataIter], b.Board[i][dataStartY:dataEndY])
+		copy(data[dataIter], b.Board[i-b.StartW][dataStartY-b.StartH:dataEndY-b.StartH])
 		dataIter++
 	}
 
