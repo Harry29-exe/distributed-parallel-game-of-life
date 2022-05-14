@@ -32,12 +32,22 @@ func main() {
 	}
 
 	board := gol.RandomBoardPart(boardW, boardH)
+	err = board.FPrint(iteration, file)
+	if err != nil {
+		println(err.Error())
+		os.Exit(1)
+	}
+
 	for iteration = 1; iteration <= programIterations; iteration++ {
-		taskCount := max(s.ConnectionCount(), 1)
+		taskCount := min(max(s.ConnectionCount(), 1), uint64(boardW*boardH))
 		tasks := make([]server.Task, taskCount)
 
 		//todo add error handling when board can not be split to so many parts
-		boardParts := board.Split(uint32(taskCount))
+		boardParts, err := board.Split(uint32(taskCount))
+		if err != nil {
+
+		}
+
 		for i := uint64(0); i < taskCount; i++ {
 			fmt.Printf("i = %d\n", i)
 			boardData, err := gol.SerializeBoardPart(boardParts[i])
@@ -85,6 +95,13 @@ func main() {
 
 func max(a, b uint64) uint64 {
 	if a > b {
+		return a
+	}
+	return b
+}
+
+func min(a, b uint64) uint64 {
+	if a < b {
 		return a
 	}
 	return b

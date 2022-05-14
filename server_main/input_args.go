@@ -96,4 +96,15 @@ func readInputArgs() {
 
 		delayTime = time.Duration(delayTimeVal) * time.Millisecond
 	}
+
+	argValue, ok = args["boardH"]
+	if ok {
+		iterations, err := strconv.Atoi(argValue)
+		if err != nil || iterations < 1 || iterations > math.MaxUint32 {
+			fmt.Println("Variable program iterations (i.e. board height) must be integer between 1 and 2^32-1")
+			os.Exit(1)
+		}
+		programIterations = iterations
+	}
+
 }

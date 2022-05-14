@@ -9,7 +9,7 @@ import (
 	"strings"
 )
 
-func emptyBoardPart(width, height uint32) BoardPart {
+func emptyBoardPart(width, height, startW, startH uint32) BoardPart {
 	matrix := make([][]int8, width+2)
 	for i := uint32(0); i < width+2; i++ {
 		matrix[i] = make([]int8, height+2)
@@ -19,11 +19,13 @@ func emptyBoardPart(width, height uint32) BoardPart {
 		Width:  width,
 		Height: height,
 		Board:  matrix,
+		StartW: startW,
+		StartH: startH,
 	}
 }
 
 func RandomBoardPart(width, height uint32) BoardPart {
-	board := emptyBoardPart(width, height)
+	board := emptyBoardPart(width, height, 0, 0)
 	for x := uint32(1); x < board.Width; x++ {
 		for y := uint32(1); y < board.Height; y++ {
 			board.Board[x][y] = int8(rand.Intn(2))
@@ -116,7 +118,7 @@ func (b BoardPart) PrintWithBorder() {
 }
 
 func (b BoardPart) CalcNext() BoardPart {
-	next := emptyBoardPart(b.Width, b.Height)
+	next := emptyBoardPart(b.Width, b.Height, b.StartW, b.StartH)
 
 	for x := uint32(1); x < b.Width+1; x++ {
 		for y := uint32(1); y < b.Height+1; y++ {
@@ -169,8 +171,8 @@ func (b BoardPart) Merge(parts []BoardPart) BoardPart {
 		Width:  b.Width,
 		Height: b.Height,
 		Board:  data,
-		StartW: 0,
-		StartH: 0,
+		StartW: b.StartW,
+		StartH: b.StartH,
 	}
 }
 

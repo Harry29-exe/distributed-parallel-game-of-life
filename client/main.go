@@ -13,7 +13,7 @@ const (
 	port = "3333"
 )
 
-const threadCount = 4
+const threadCount = 2
 
 func main() {
 	registerAndListen()
@@ -37,15 +37,24 @@ func registerAndListen() {
 		// calc
 		wait := sync.WaitGroup{}
 		wait.Add(threadCount)
-		parts := board.Split(threadCount)
+		//todo handle err
+		parts, _ := board.Split(threadCount)
 		for i := 0; i < threadCount; i++ {
 			partNo := i
+			parts[partNo].PrintWithBorder()
+			print("\n")
 			go func() {
 				parts[partNo] = parts[partNo].CalcNext()
 				wait.Done()
 			}()
 		}
 		wait.Wait()
+		print("\n\n")
+
+		for _, part := range parts {
+			part.PrintWithBorder()
+			print("\n")
+		}
 		outputBoard := board.Merge(parts)
 
 		fmt.Println("Calculated next board")
