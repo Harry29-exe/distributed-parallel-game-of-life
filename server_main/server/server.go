@@ -94,7 +94,7 @@ func (s *distributorServer) Distribute(tasks []Task) error {
 			}
 
 			waitGroup.Add(1)
-			s.sendTask(tasks[taskCounter], taskCounter, connWrapper, waitGroup, errChan)
+			go s.sendTask(tasks[taskCounter], taskCounter, connWrapper, waitGroup, errChan)
 			taskCounter++
 		}
 	}
@@ -109,6 +109,9 @@ func (s *distributorServer) Distribute(tasks []Task) error {
 		select {
 		case err := <-errChan:
 			if err.isConnectionErr {
+				fmt.Printf("Server: received connection error: %s closing connection to %s\n",
+					err.err.Error(), s.connections[err.connectionId].Conn.RemoteAddr().String())
+
 				s.lock.Lock()
 				delete(s.connections, err.connectionId)
 				s.lock.Unlock()
@@ -117,7 +120,7 @@ func (s *distributorServer) Distribute(tasks []Task) error {
 					s.waitForConnection()
 				}
 				for _, connWrapper := range s.connections {
-					s.sendTask(tasks[err.taskId], err.taskId, connWrapper, waitGroup, errChan)
+					go s.sendTask(tasks[err.taskId], err.taskId, connWrapper, waitGroup, errChan)
 				}
 
 			} else {
@@ -192,6 +195,8 @@ func (s *distributorServer) waitForConnection() {
 }
 
 func (s *distributorServer) sendTask(task Task, taskId int, connWrapper ConnWrapper, group *sync.WaitGroup, errChan chan taskError) {
+	fmt.Printf("sending task to connection %s", connWrapper.Conn.RemoteAddr().String())
+
 	errFactory := taskErrorFactory{
 		taskId:       taskId,
 		connectionId: connWrapper.connId,
@@ -229,14 +234,17 @@ func (s *distributorServer) sendTask(task Task, taskId int, connWrapper ConnWrap
 	incomingDataLen := binary.LittleEndian.Uint32(msgLen)
 
 	msg := make([]byte, incomingDataLen)
-	n, err = conn.Read(msg)
-	if err != nil {
-		errChan <- errFactory.newTaskConnError(err)
-		return
-	} else if n > math.MaxUint32 {
-		errChan <- errFactory.newTaskErr(fmt.Errorf("received msg of leght %d, that is protocol error", n))
-		return
-	} else if uint32(n) != incomingDataLen {
+	receivedBytes := uint32(0)
+	for receivedBytes < incomingDataLen {
+		n, err = conn.Read(msg[receivedBytes:])
+		if err != nil {
+			errChan <- errFactory.newTaskConnError(err)
+			return
+		}
+		receivedBytes += uint32(n)
+	}
+
+	if receivedBytes != incomingDataLen {
 		errChan <- errFactory.newTaskConnError(fmt.Errorf("msg should be %d bytes long but received %d bytes",
 			incomingDataLen, n))
 		return
@@ -249,6 +257,8 @@ func (s *distributorServer) sendTask(task Task, taskId int, connWrapper ConnWrap
 	}
 
 	group.Done()
+	fmt.Printf("received finished task from connection: %s\n",
+		connWrapper.Conn.RemoteAddr().String())
 
 	return
 }
