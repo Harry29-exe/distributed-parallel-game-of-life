@@ -22,6 +22,7 @@ func registerAndListen() {
 
 	for {
 		// receive
+		fmt.Println("Receiving board...")
 		board, err := gol.Remote.ReceiveBoard(conn)
 		if err != nil {
 			println(err.Error())
@@ -30,11 +31,15 @@ func registerAndListen() {
 		fmt.Println("Received board")
 
 		// calc
+		partsCount := threadCount
+		if threadCount > board.Width*board.Height {
+			partsCount = board.Width * board.Height
+		}
 		wait := sync.WaitGroup{}
-		wait.Add(int(threadCount))
+		wait.Add(int(partsCount))
 		//todo handle err
-		parts, _ := board.Split(threadCount)
-		for i := 0; i < int(threadCount); i++ {
+		parts, _ := board.Split(partsCount)
+		for i := 0; i < int(partsCount); i++ {
 			partNo := i
 
 			go func() {

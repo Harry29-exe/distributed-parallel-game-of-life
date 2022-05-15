@@ -27,6 +27,9 @@ func readInputArgs() {
 
 	for _, arg := range osArgs {
 		eqSignIndex := strings.Index(arg, "=")
+		if eqSignIndex < 0 {
+			continue
+		}
 		argName, argValue := arg[0:eqSignIndex], arg[eqSignIndex+1:]
 		args[argName] = argValue
 	}
