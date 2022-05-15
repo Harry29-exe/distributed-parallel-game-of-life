@@ -195,7 +195,7 @@ func (s *distributorServer) waitForConnection() {
 }
 
 func (s *distributorServer) sendTask(task Task, taskId int, connWrapper ConnWrapper, group *sync.WaitGroup, errChan chan taskError) {
-	fmt.Printf("sending task to connection %s", connWrapper.Conn.RemoteAddr().String())
+	fmt.Printf("sending task to connection %s\n", connWrapper.Conn.RemoteAddr().String())
 
 	errFactory := taskErrorFactory{
 		taskId:       taskId,

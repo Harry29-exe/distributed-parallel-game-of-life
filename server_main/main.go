@@ -50,7 +50,6 @@ func main() {
 		}
 
 		for i := uint64(0); i < taskCount; i++ {
-			fmt.Printf("i = %d\n", i)
 			boardData, err := gol.SerializeBoardPart(boardParts[i])
 			if err != nil {
 				fmt.Println("could not serialize board, that is unexpected error please contact it teams")
@@ -68,7 +67,6 @@ func main() {
 					if err != nil {
 						return err
 					}
-					fmt.Printf("iCopy = %d\n", iCopy)
 					boardParts[iCopy] = *boardPart
 					return nil
 				},
