@@ -3,6 +3,7 @@ package gol
 import (
 	"encoding/binary"
 	"errors"
+	"fmt"
 	"net"
 )
 
@@ -40,13 +41,15 @@ func (r remote) ReceiveBoard(conn net.Conn) (*BoardPart, error) {
 	}
 
 	length := binary.LittleEndian.Uint32(boardLen)
+	println(length)
 	boardData := make([]byte, length)
 	i, err = conn.Read(boardData)
 	if err != nil {
 		return nil, err
 	} else if uint32(i) != length {
-		return nil, errors.New("data should be exactly the length of " +
-			"previously send length")
+		return nil,
+			fmt.Errorf("data should be exactly the length of previously send length (%d bytes) but is %d bytes long",
+				length, i)
 	}
 
 	board, err := DeserializeBoardPart(boardData)
