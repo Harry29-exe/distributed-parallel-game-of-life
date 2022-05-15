@@ -8,21 +8,16 @@ import (
 	"sync"
 )
 
-const (
-	host = "localhost"
-	port = "3333"
-)
-
-const threadCount = 4
-
 func main() {
+	readInputArgs()
 	registerAndListen()
 }
 
 func registerAndListen() {
 	conn, err := net.Dial("tcp", host+":"+port)
 	if err != nil {
-		fmt.Println("Can not connect to "+host+":"+port+" \nerror: ", err)
+		fmt.Printf("Can not connect to %s:%s because of following error:\n %s", host, port, err.Error())
+		os.Exit(1)
 	}
 
 	for {
@@ -36,25 +31,19 @@ func registerAndListen() {
 
 		// calc
 		wait := sync.WaitGroup{}
-		wait.Add(threadCount)
+		wait.Add(int(threadCount))
 		//todo handle err
 		parts, _ := board.Split(threadCount)
-		for i := 0; i < threadCount; i++ {
+		for i := 0; i < int(threadCount); i++ {
 			partNo := i
-			parts[partNo].PrintWithBorder()
-			print("\n")
+
 			go func() {
 				parts[partNo] = parts[partNo].CalcNext()
 				wait.Done()
 			}()
 		}
 		wait.Wait()
-		print("\n\n")
 
-		for _, part := range parts {
-			part.PrintWithBorder()
-			print("\n")
-		}
 		outputBoard := board.Merge(parts)
 
 		fmt.Println("Calculated next board")
