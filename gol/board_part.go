@@ -179,19 +179,30 @@ func (b BoardPart) Merge(parts []BoardPart) BoardPart {
 func (b BoardPart) Split(n uint32) ([]BoardPart, error) {
 	parts := make([]BoardPart, n)
 	parts[0] = b
+
+	splittableParts := make([]BoardPart, 1, n)
+	splittableParts[0] = b
 	partsIteratorLen := 1
 	partsIterator := 0
 
 	for i := 1; i < int(n); i++ {
 		err := b.splitInto2(parts, partsIterator, i)
 		if err != nil {
-			return nil, err
+			if len(splittableParts) == 1 {
+				return nil, err
+			}
+
+			splittableParts[partsIterator] = splittableParts[len(splittableParts)-1]
+			splittableParts = splittableParts[:len(splittableParts)-1]
+			i--
+			continue
 		}
+		splittableParts = append(splittableParts, parts[i])
 
 		partsIterator++
 		if partsIterator == partsIteratorLen {
 			partsIterator = 0
-			partsIteratorLen = i
+			partsIteratorLen = len(splittableParts)
 		}
 	}
 
