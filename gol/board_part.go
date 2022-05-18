@@ -180,29 +180,35 @@ func (b BoardPart) Split(n uint32) ([]BoardPart, error) {
 	parts := make([]BoardPart, n)
 	parts[0] = b
 
-	splittableParts := make([]BoardPart, 1, n)
-	splittableParts[0] = b
-	partsIteratorLen := 1
-	partsIterator := 0
+	splittable := make([]int, 1, n)
+	splittable[0] = b
+	splittableIterationLen := 1
+	splittableIterator := 0
 
 	for i := 1; i < int(n); i++ {
-		err := b.splitInto2(parts, partsIterator, i)
+		err := b.splitInto2(parts, splittableIterator, i)
 		if err != nil {
-			if len(splittableParts) == 1 {
+			if len(splittable) == 1 {
 				return nil, err
 			}
 
-			splittableParts[partsIterator] = splittableParts[len(splittableParts)-1]
-			splittableParts = splittableParts[:len(splittableParts)-1]
+			splittable[splittableIterator] = splittable[len(splittable)-1]
+			splittable = splittable[:len(splittable)-1]
 			i--
+			if splittableIterator == len(splittable) {
+				splittableIterator = 0
+			}
+
 			continue
 		}
-		splittableParts = append(splittableParts, parts[i])
+		if parts[i].Width*parts[i].Height > 1 {
+			splittable = append(splittable, i)
+		}
 
-		partsIterator++
-		if partsIterator == partsIteratorLen {
-			partsIterator = 0
-			partsIteratorLen = len(splittableParts)
+		splittableIterator++
+		if splittableIterator == splittableIterationLen {
+			splittableIterator = 0
+			splittableIterationLen = len(splittable)
 		}
 	}
 

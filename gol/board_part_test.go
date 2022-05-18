@@ -26,16 +26,20 @@ func TestBoardPart_Split(t *testing.T) {
 }
 
 func FuzzBoardPart_Split(f *testing.F) {
-	f.Add(4, 4, 2)
-	f.Add(7, 1, 7)
-	f.Add(10, 1, 10)
-	f.Add(5, 6, 4)
-	f.Add(8, 8, 4)
-	f.Add(5, 5, 1)
-	f.Add(5, 5, 5)
-	f.Add(4, 4, 5)
+	f.Add(uint(4), uint(4), uint(2))
+	f.Add(uint(7), uint(1), uint(7))
+	f.Add(uint(10), uint(1), uint(10))
+	f.Add(uint(5), uint(6), uint(4))
+	f.Add(uint(8), uint(8), uint(4))
+	f.Add(uint(5), uint(5), uint(1))
+	f.Add(uint(5), uint(5), uint(5))
+	f.Add(uint(4), uint(4), uint(5))
 
-	f.Fuzz(func(t *testing.T, width, height, nSplits int) {
+	f.Fuzz(func(t *testing.T, width, height, nSplits uint) {
+		if width == 0 || height == 0 || nSplits == 0 ||
+			width*height < nSplits {
+			t.SkipNow()
+		}
 		board := RandomBoardPart(uint32(width), uint32(height))
 		boards, err := board.Split(uint32(nSplits))
 		if err != nil {
