@@ -2,9 +2,11 @@ package gol
 
 import (
 	"errors"
+	"fmt"
 	"math"
 	"math/rand"
 	"os"
+	"sort"
 	"strconv"
 	"strings"
 )
@@ -180,35 +182,34 @@ func (b BoardPart) Split(n uint32) ([]BoardPart, error) {
 	parts := make([]BoardPart, n)
 	parts[0] = b
 
-	splittable := make([]int, 1, n)
-	splittable[0] = b
-	splittableIterationLen := 1
-	splittableIterator := 0
+	splitIterator := 0
+	lastSplitIterationLen := 1
 
 	for i := 1; i < int(n); i++ {
-		err := b.splitInto2(parts, splittableIterator, i)
-		if err != nil {
-			if len(splittable) == 1 {
-				return nil, err
+
+		if parts[splitIterator].Width*parts[splitIterator].Height == 1 {
+			if splitIterator == 0 {
+				return nil, fmt.Errorf("can not split board of size %dx%d into %d picese", b.Width, b.Height, n)
 			}
 
-			splittable[splittableIterator] = splittable[len(splittable)-1]
-			splittable = splittable[:len(splittable)-1]
-			i--
-			if splittableIterator == len(splittable) {
-				splittableIterator = 0
-			}
+			sort.Slice(parts, func(i, j int) bool {
+				return parts[i].Width*parts[i].Height > parts[j].Height*parts[j].Width
+			})
+			splitIterator = 0
+			lastSplitIterationLen = i + 1
 
 			continue
 		}
-		if parts[i].Width*parts[i].Height > 1 {
-			splittable = append(splittable, i)
+
+		err := b.splitInto2(parts, splitIterator, i)
+		if err != nil {
+			return nil, err
 		}
 
-		splittableIterator++
-		if splittableIterator == splittableIterationLen {
-			splittableIterator = 0
-			splittableIterationLen = len(splittable)
+		splitIterator++
+		if splitIterator == lastSplitIterationLen {
+			splitIterator = 0
+			lastSplitIterationLen = i + 1
 		}
 	}
 

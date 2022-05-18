@@ -26,14 +26,15 @@ func TestBoardPart_Split(t *testing.T) {
 }
 
 func FuzzBoardPart_Split(f *testing.F) {
-	f.Add(uint(4), uint(4), uint(2))
 	f.Add(uint(7), uint(1), uint(7))
+	f.Add(uint(4), uint(4), uint(2))
 	f.Add(uint(10), uint(1), uint(10))
 	f.Add(uint(5), uint(6), uint(4))
 	f.Add(uint(8), uint(8), uint(4))
 	f.Add(uint(5), uint(5), uint(1))
 	f.Add(uint(5), uint(5), uint(5))
 	f.Add(uint(4), uint(4), uint(5))
+	f.Add(uint(7), uint(31), uint(131))
 
 	f.Fuzz(func(t *testing.T, width, height, nSplits uint) {
 		if width == 0 || height == 0 || nSplits == 0 ||

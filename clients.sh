@@ -1,6 +1,6 @@
 #!/bin/bash
 
-server="./server_main/server.out boardW=120 boardH=120 programIterations=100 delay=true delayTime=10"
+server="./server_main/server.out boardW=10000 boardH=10000 programIterations=10"
 client1="./client/client.out"
 client2="./client/client.out"
 
