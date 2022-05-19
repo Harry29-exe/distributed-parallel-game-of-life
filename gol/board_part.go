@@ -28,8 +28,9 @@ func emptyBoardPart(width, height, startW, startH uint32) BoardPart {
 
 func RandomBoardPart(width, height uint32) BoardPart {
 	board := emptyBoardPart(width, height, 0, 0)
-	for x := uint32(1); x < board.Width; x++ {
-		for y := uint32(1); y < board.Height; y++ {
+
+	for x := uint32(1); x < board.Width+1; x++ {
+		for y := uint32(1); y < board.Height+1; y++ {
 			board.Board[x][y] = int8(rand.Intn(2))
 		}
 	}
